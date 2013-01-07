@@ -18,6 +18,8 @@ class OverEasyBaseModule extends AbstractModule
 			install(module);
 		}
 		MapBinder.newMapBinder(binder(), String.class, Command.class);
+		bind(SplashScreen.class).toInstance(SplashScreen.NONE);
+		bind(Prompt.class).to(SimplePrompt.class);
 		bind(Environment.class);
 	}
 }

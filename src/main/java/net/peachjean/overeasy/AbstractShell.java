@@ -67,7 +67,7 @@ public abstract class AbstractShell {
 	{
 		final Module initialModule = this.initialize(Iterators.peekingIterator(Arrays.asList(arguments).iterator()));
 		final Module defaultCommands = this.useDefaultCommands() ? new DefaultCommandsModule() : Modules.EMPTY_MODULE;
-		return Guice.createInjector(initialModule, new OverEasyBaseModule(), defaultCommands);
+		return Guice.createInjector(Modules.override(new OverEasyBaseModule()).with(initialModule), defaultCommands);
 	}
 
 	private boolean useDefaultCommands()
