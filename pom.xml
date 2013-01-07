@@ -30,6 +30,7 @@
 	<scm>
 		<url>https://bitbucket.org/peachjean/overeasy/</url>
 		<connection>scm:hg:ssh://hg@bitbucket.org/peachjean/overeasy</connection>
+		<developerConnection>scm:hg:ssh://hg@bitbucket.org/peachjean/overeasy</developerConnection>
 	</scm>
 
 	<developers>
@@ -68,4 +69,18 @@
 			<version>13.0.1</version>
 		</dependency>
 	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-release-plugin</artifactId>
+				<version>2.4</version>
+				<configuration>
+					<tagNameFormat>@{project.version}</tagNameFormat>
+					<pushChanges>false</pushChanges>
+					<localCheckout>true</localCheckout>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
 </project>
