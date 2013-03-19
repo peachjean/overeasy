@@ -20,10 +20,13 @@ import jline.console.history.History;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
 import org.fusesource.jansi.AnsiConsole;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import net.peachjean.overeasy.command.Command;
 import net.peachjean.overeasy.commands.DefaultCommandsModule;
@@ -37,6 +40,7 @@ import com.google.inject.util.Modules;
 
 public abstract class AbstractShell {
     private static CommandLineParser parser = new PosixParser();
+	private static final Logger logger = LoggerFactory.getLogger(AbstractShell.class);
 
     public final void run(String[] arguments) throws Exception {
 	    Injector injector = createInjector(arguments);
@@ -94,6 +98,7 @@ public abstract class AbstractShell {
                     catch (Throwable e) {
                         System.out.println("Command failed with error: "
                                         + e.getMessage());
+	                    logger.error("Command << " + line + " >> failed.", e);
                         if (cl.hasOption("v")) {
                             e.printStackTrace();
                         }
@@ -111,6 +116,11 @@ public abstract class AbstractShell {
 
     private static CommandLine parse(Command cmd, String[] args) {
         Options opts = cmd.getOptions();
+	    Options customOptions = new Options();
+	    for(Option option: (Iterable<Option>) opts.getOptions()) {
+		    customOptions.addOption(option);
+	    }
+	    customOptions.addOption(new Option("v", "verbose", false, "verbose mode"));
         CommandLine retval = null;
         try {
             retval = parser.parse(opts, args);
