@@ -40,6 +40,7 @@ import com.google.inject.util.Modules;
 
 public abstract class AbstractShell {
     private static CommandLineParser parser = new PosixParser();
+	private static LineTokenizer lineTokenizer = new LineTokenizer();
 	private static final Logger logger = LoggerFactory.getLogger(AbstractShell.class);
 
     public final void run(String[] arguments) throws Exception {
@@ -82,7 +83,7 @@ public abstract class AbstractShell {
 	private void acceptCommands(ConsoleReader reader, final Environment env, final Prompt prompt) throws IOException {
         String line;
         while ((line = reader.readLine(prompt.getPrompt())) != null) {
-            String[] argv = line.split("\\s");
+            String[] argv = lineTokenizer.splitLine(line);
             String cmdName = argv[0];
 
             Command command = env.getCommand(cmdName);
