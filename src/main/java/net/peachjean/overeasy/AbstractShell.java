@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 
 import jline.console.ConsoleReader;
 import jline.console.completer.AggregateCompleter;
@@ -48,7 +49,8 @@ public abstract class AbstractShell {
         Environment env = injector.getInstance(Environment.class);
 
         // create reader and add completers
-        ConsoleReader reader = new ConsoleReader();
+        ConsoleReader reader = new ConsoleReader(getName(), System.in, System.out, null);
+        reader.setHandleUserInterrupt(true);
 
 	    SplashScreen ss = injector.getInstance(SplashScreen.class);
 	    if(ss != null)
@@ -81,9 +83,13 @@ public abstract class AbstractShell {
 	}
 
 	private void acceptCommands(ConsoleReader reader, final Environment env, final Prompt prompt) throws IOException {
-        String line;
-        while ((line = reader.readLine(prompt.getPrompt())) != null) {
+        Iterator<String> lineIterator = new ConsoleLineIterator(reader, prompt);
+        while (lineIterator.hasNext()) {
+            String line = lineIterator.next();
             String[] argv = lineTokenizer.splitLine(line);
+	        if(argv.length == 0) {
+		        continue;
+	        }
             String cmdName = argv[0];
 
             Command command = env.getCommand(cmdName);
@@ -113,6 +119,7 @@ public abstract class AbstractShell {
                 }
             }
         }
+        reader.println();
     }
 
     private static CommandLine parse(Command cmd, String[] args) {
