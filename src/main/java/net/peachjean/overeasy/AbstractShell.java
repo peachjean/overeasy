@@ -51,6 +51,7 @@ public abstract class AbstractShell {
 	private static final ShellHelpFormatter shellHelpFormatter = new ShellHelpFormatter();
 
     public final void run(final String[] arguments) throws Exception {
+	    LoggingInitializer.initLogging(getShellDir());
 	    final CommandLine shellCommandLine = parseShellCommandLine(arguments);
 
 	    final Injector injector = createInjector(shellCommandLine);
@@ -221,8 +222,7 @@ public abstract class AbstractShell {
     }
 
     private History initHistory() throws IOException {
-        final File dir = new File(System.getProperty("user.home"), "."
-                        + this.getName());
+        final File dir = getShellDir();
         if (dir.exists() && dir.isFile()) {
             throw new IllegalStateException(
                             "Default configuration file exists and is not a directory: "
@@ -262,7 +262,13 @@ public abstract class AbstractShell {
 
     }
 
-    public abstract Module initialize(CommandLine commandLine) throws Exception;
+	private File getShellDir()
+	{
+		return new File(System.getProperty("user.home"), "."
+		                + this.getName());
+	}
+
+	public abstract Module initialize(CommandLine commandLine) throws Exception;
 
     public abstract String getName();
 
