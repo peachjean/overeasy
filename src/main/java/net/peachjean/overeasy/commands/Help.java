@@ -45,9 +45,17 @@ public class Help extends AbstractCommand {
 	        out.write("\n");
 	        out.write("Available Commands\n");
 	        out.write("------------------\n");
-            for (String str : env.commandList()) {
-                out.write(String.format("%10.10s  %-60.60s%n", str, env.getCommand(str).getHelpHeader()));
-            }
+	        int length = 0;
+	        for (String str : env.commandList()) {
+		        if(str.length() > length)
+		        {
+			        length = str.length();
+		        }
+	        }
+	        String format = "%" + length + "." + length + "s %-60.60s%n";
+	        for (String str : env.commandList()) {
+		        out.write(String.format(format, str, env.getCommand(str).getHelpHeader()));
+	        }
         } else {
             Command command = env.getCommand(cmd.getArgs()[0]);
             logv(cmd, "Get Help for command: " + command.getName() + "(" + command.getClass().getName() + ")");

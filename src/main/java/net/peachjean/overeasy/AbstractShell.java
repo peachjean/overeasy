@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 
 import jline.console.ConsoleReader;
 import jline.console.completer.AggregateCompleter;
@@ -40,6 +41,7 @@ import com.google.inject.util.Modules;
 
 public abstract class AbstractShell {
     private static CommandLineParser parser = new PosixParser();
+	private static LineTokenizer lineTokenizer = new LineTokenizer();
 	private static final Logger logger = LoggerFactory.getLogger(AbstractShell.class);
 
     public final void run(String[] arguments) throws Exception {
@@ -47,7 +49,8 @@ public abstract class AbstractShell {
         Environment env = injector.getInstance(Environment.class);
 
         // create reader and add completers
-        ConsoleReader reader = new ConsoleReader();
+        ConsoleReader reader = new ConsoleReader(getName(), System.in, System.out, null);
+        reader.setHandleUserInterrupt(true);
 
 	    SplashScreen ss = injector.getInstance(SplashScreen.class);
 	    if(ss != null)
@@ -71,18 +74,22 @@ public abstract class AbstractShell {
 	{
 		final Module initialModule = this.initialize(Iterators.peekingIterator(Arrays.asList(arguments).iterator()));
 		final Module defaultCommands = this.useDefaultCommands() ? new DefaultCommandsModule() : Modules.EMPTY_MODULE;
-		return Guice.createInjector(Modules.override(new OverEasyBaseModule()).with(initialModule), defaultCommands);
+		return Guice.createInjector(Modules.override(new OverEasyBaseModule(), defaultCommands).with(initialModule));
 	}
 
-	private boolean useDefaultCommands()
+	protected boolean useDefaultCommands()
 	{
 		return true;
 	}
 
 	private void acceptCommands(ConsoleReader reader, final Environment env, final Prompt prompt) throws IOException {
-        String line;
-        while ((line = reader.readLine(prompt.getPrompt())) != null) {
-            String[] argv = line.split("\\s");
+        Iterator<String> lineIterator = new ConsoleLineIterator(reader, prompt);
+        while (lineIterator.hasNext()) {
+            String line = lineIterator.next();
+            String[] argv = lineTokenizer.splitLine(line);
+	        if(argv.length == 0) {
+		        continue;
+	        }
             String cmdName = argv[0];
 
             Command command = env.getCommand(cmdName);
@@ -112,6 +119,7 @@ public abstract class AbstractShell {
                 }
             }
         }
+        reader.println();
     }
 
     private static CommandLine parse(Command cmd, String[] args) {
