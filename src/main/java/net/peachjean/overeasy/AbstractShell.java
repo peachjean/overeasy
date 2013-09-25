@@ -31,6 +31,8 @@ import org.slf4j.LoggerFactory;
 import net.peachjean.overeasy.command.Command;
 import net.peachjean.overeasy.commands.DefaultCommandsModule;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
@@ -66,9 +68,17 @@ public abstract class AbstractShell {
 		    pw.flush();
 		    return;
 	    }
+
 	    // create reader and add completers
 	    final ConsoleReader reader = new ConsoleReader(getName(), System.in, System.out, null);
         reader.setHandleUserInterrupt(true);
+
+	    if(!shellCommandLine.getArgList().isEmpty())
+	    {
+			handleCommand(reader, env, Joiner.on(" ").join(shellCommandLine.getArgs()), shellCommandLine.getArgs());
+		    return;
+	    }
+
 
 	    final boolean suppressSplashScreen = isSplashScreenSuppressed(shellCommandLine);
 	    if(!suppressSplashScreen)
@@ -100,7 +110,7 @@ public abstract class AbstractShell {
 	private CommandLine parseShellCommandLine(final String[] arguments) throws ParseException
 	{
 		final Options options = getShellOptions();
-		return parser.parse(options, arguments);
+		return parser.parse(options, arguments, true);
 	}
 
 	private Options getShellOptions()
@@ -132,39 +142,44 @@ public abstract class AbstractShell {
 	        if(argv.length == 0) {
 		        continue;
 	        }
-            final String cmdName = argv[0];
-
-            final Command command = env.getCommand(cmdName);
-            if (command != null) {
-//                System.out.println("Running: " + command.getName() + " ("
-//                                + command.getClass().getName() + ")");
-                final String[] cmdArgs = Arrays.copyOfRange(argv, 1, argv.length);
-                final CommandLine cl = parse(command, cmdArgs);
-                if (cl != null) {
-                    try {
-                        command.execute(env, cl, reader);
-                    }
-                    catch (Throwable e) {
-                        System.out.println("Command failed with error: "
-                                        + e.getMessage());
-	                    logger.error("Command << " + line + " >> failed.", e);
-                        if (cl.hasOption("v")) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-
-            }
-            else {
-                if (cmdName != null && cmdName.length() > 0) {
-                    System.out.println(cmdName + ": command not found");
-                }
-            }
+	        handleCommand(reader, env, line, argv);
         }
         reader.println();
     }
 
-    private static CommandLine parse(final Command cmd, final String[] args) {
+	private void handleCommand(final ConsoleReader reader, final Environment env, final String line, final String[] argv)
+	{
+		final String cmdName = argv[0];
+
+		final Command command = env.getCommand(cmdName);
+		if (command != null) {
+		//                System.out.println("Running: " + command.getName() + " ("
+		//                                + command.getClass().getName() + ")");
+		    final String[] cmdArgs = Arrays.copyOfRange(argv, 1, argv.length);
+		    final CommandLine cl = parse(command, cmdArgs);
+		    if (cl != null) {
+		        try {
+		            command.execute(env, cl, reader);
+		        }
+		        catch (Throwable e) {
+		            System.out.println("Command failed with error: "
+		                            + e.getMessage());
+			        logger.error("Command << " + line + " >> failed.", e);
+		            if (cl.hasOption("v")) {
+		                e.printStackTrace();
+		            }
+		        }
+		    }
+
+		}
+		else {
+		    if (cmdName != null && cmdName.length() > 0) {
+		        System.out.println(cmdName + ": command not found");
+		    }
+		}
+	}
+
+	private static CommandLine parse(final Command cmd, final String[] args) {
         final Options opts = cmd.getOptions();
 	    final Options customOptions = new Options();
 	    for(final Option option: (Iterable<Option>) opts.getOptions()) {
