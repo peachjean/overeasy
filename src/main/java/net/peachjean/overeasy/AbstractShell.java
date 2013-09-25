@@ -45,17 +45,22 @@ public abstract class AbstractShell {
 	private static final Logger logger = LoggerFactory.getLogger(AbstractShell.class);
 
     public final void run(String[] arguments) throws Exception {
-	    Injector injector = createInjector(arguments);
+	    CommandLine shellCommandLine = parseShellCommandLine(arguments);
+	    Injector injector = createInjector(shellCommandLine.getArgs());
         Environment env = injector.getInstance(Environment.class);
 
         // create reader and add completers
         ConsoleReader reader = new ConsoleReader(getName(), System.in, System.out, null);
         reader.setHandleUserInterrupt(true);
 
-	    SplashScreen ss = injector.getInstance(SplashScreen.class);
-	    if(ss != null)
+	    boolean suppressSplashScreen = isSplashScreenSuppressed(shellCommandLine);
+	    if(!suppressSplashScreen)
 	    {
-		    ss.render(reader);
+		    SplashScreen ss = injector.getInstance(SplashScreen.class);
+		    if(ss != null)
+		    {
+			    ss.render(reader);
+		    }
 	    }
 
 	    Prompt prompt = injector.getInstance(Prompt.class);
@@ -69,6 +74,18 @@ public abstract class AbstractShell {
         acceptCommands(reader, env, prompt);
 
     }
+
+	private boolean isSplashScreenSuppressed(final CommandLine shellCommandLine)
+	{
+		return shellCommandLine.hasOption("sss");
+	}
+
+	private CommandLine parseShellCommandLine(final String[] arguments) throws ParseException
+	{
+		Options options = new Options();
+		options.addOption("sss", "suppressSplashScreen", false, "When given, the splash screen is suppressed.");
+		return parser.parse(options, arguments);
+	}
 
 	private Injector createInjector(final String[] arguments) throws Exception
 	{
