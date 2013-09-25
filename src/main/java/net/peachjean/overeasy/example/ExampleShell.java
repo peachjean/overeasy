@@ -15,6 +15,9 @@ import com.google.common.collect.PeekingIterator;
 import com.google.inject.Binder;
 import com.google.inject.Module;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Options;
+
 public class ExampleShell extends AbstractShell {
     
     
@@ -24,7 +27,7 @@ public class ExampleShell extends AbstractShell {
     }
 
 	@Override
-	public Module initialize(final PeekingIterator<String> iterator) throws Exception
+	public Module initialize(final CommandLine commandLine) throws Exception
 	{
 		return new Module() {
 			@Override
@@ -35,8 +38,13 @@ public class ExampleShell extends AbstractShell {
 		};
 	}
 
+	@Override
+	public void provideOptions(final Options options)
+	{
+		// do nothing
+	}
 
-    @Override
+	@Override
     public String getName() {
         return "stemshell-example";
     }

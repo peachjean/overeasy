@@ -2,11 +2,9 @@
 
 package net.peachjean.overeasy;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -21,6 +19,7 @@ import jline.console.history.History;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
@@ -32,46 +31,64 @@ import org.slf4j.LoggerFactory;
 import net.peachjean.overeasy.command.Command;
 import net.peachjean.overeasy.commands.DefaultCommandsModule;
 
-import com.google.common.collect.Iterators;
-import com.google.common.collect.PeekingIterator;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
 import com.google.inject.util.Modules;
 
 public abstract class AbstractShell {
-    private static CommandLineParser parser = new PosixParser();
-	private static LineTokenizer lineTokenizer = new LineTokenizer();
+	private static final String HELP_HEADER = "If a command is given, "
+	                                          + "the command will be run and the shell will exit. Otherwise, "
+	                                          + "an interactive shell will be entered.";
+	private static final String HELP_USAGE = "[OPTIONS] [command [command options]]";
+
+	private static final CommandLineParser parser = new PosixParser();
+	private static final LineTokenizer lineTokenizer = new LineTokenizer();
 	private static final Logger logger = LoggerFactory.getLogger(AbstractShell.class);
 
-    public final void run(String[] arguments) throws Exception {
-	    CommandLine shellCommandLine = parseShellCommandLine(arguments);
-	    Injector injector = createInjector(shellCommandLine.getArgs());
-        Environment env = injector.getInstance(Environment.class);
+	private static final ShellHelpFormatter shellHelpFormatter = new ShellHelpFormatter();
 
-        // create reader and add completers
-        ConsoleReader reader = new ConsoleReader(getName(), System.in, System.out, null);
+    public final void run(final String[] arguments) throws Exception {
+	    final CommandLine shellCommandLine = parseShellCommandLine(arguments);
+
+	    final Injector injector = createInjector(shellCommandLine);
+        final Environment env = injector.getInstance(Environment.class);
+
+	    if (shellCommandLine.hasOption("h"))
+	    {
+		    final HelpFormatter helpFormatter = new HelpFormatter();
+		    final PrintWriter pw = new PrintWriter(System.err);
+		    helpFormatter.printHelp(pw, helpFormatter.getWidth(), HELP_USAGE, HELP_HEADER,
+		                            getShellOptions(), helpFormatter.getLeftPadding(),
+		                            helpFormatter.getDescPadding(), null, false);
+		    pw.println();
+		    this.shellHelpFormatter.printGlobalHelp(env, pw);
+		    pw.flush();
+		    return;
+	    }
+	    // create reader and add completers
+	    final ConsoleReader reader = new ConsoleReader(getName(), System.in, System.out, null);
         reader.setHandleUserInterrupt(true);
 
-	    boolean suppressSplashScreen = isSplashScreenSuppressed(shellCommandLine);
+	    final boolean suppressSplashScreen = isSplashScreenSuppressed(shellCommandLine);
 	    if(!suppressSplashScreen)
 	    {
-		    SplashScreen ss = injector.getInstance(SplashScreen.class);
+		    final SplashScreen ss = injector.getInstance(SplashScreen.class);
 		    if(ss != null)
 		    {
 			    ss.render(reader);
 		    }
 	    }
 
-	    Prompt prompt = injector.getInstance(Prompt.class);
+	    final Prompt prompt = injector.getInstance(Prompt.class);
 
         reader.addCompleter(initCompleters(env));
         // add history support
         reader.setHistory(initHistory());
 
         AnsiConsole.systemInstall();
-        
-        acceptCommands(reader, env, prompt);
+
+	    acceptCommands(reader, env, prompt);
 
     }
 
@@ -82,14 +99,22 @@ public abstract class AbstractShell {
 
 	private CommandLine parseShellCommandLine(final String[] arguments) throws ParseException
 	{
-		Options options = new Options();
-		options.addOption("sss", "suppressSplashScreen", false, "When given, the splash screen is suppressed.");
+		final Options options = getShellOptions();
 		return parser.parse(options, arguments);
 	}
 
-	private Injector createInjector(final String[] arguments) throws Exception
+	private Options getShellOptions()
 	{
-		final Module initialModule = this.initialize(Iterators.peekingIterator(Arrays.asList(arguments).iterator()));
+		final Options options = new Options();
+		options.addOption("sss", "suppressSplashScreen", false, "When given, the splash screen is suppressed.");
+		options.addOption("h", "help", false, "When given, shell-level help is displayed, rather than the shell.");
+		provideOptions(options);
+		return options;
+	}
+
+	private Injector createInjector(final CommandLine commandLine) throws Exception
+	{
+		final Module initialModule = this.initialize(commandLine);
 		final Module defaultCommands = this.useDefaultCommands() ? new DefaultCommandsModule() : Modules.EMPTY_MODULE;
 		return Guice.createInjector(Modules.override(new OverEasyBaseModule(), defaultCommands).with(initialModule));
 	}
@@ -99,22 +124,22 @@ public abstract class AbstractShell {
 		return true;
 	}
 
-	private void acceptCommands(ConsoleReader reader, final Environment env, final Prompt prompt) throws IOException {
-        Iterator<String> lineIterator = new ConsoleLineIterator(reader, prompt);
+	private void acceptCommands(final ConsoleReader reader, final Environment env, final Prompt prompt) throws IOException {
+        final Iterator<String> lineIterator = new ConsoleLineIterator(reader, prompt);
         while (lineIterator.hasNext()) {
-            String line = lineIterator.next();
-            String[] argv = lineTokenizer.splitLine(line);
+            final String line = lineIterator.next();
+            final String[] argv = lineTokenizer.splitLine(line);
 	        if(argv.length == 0) {
 		        continue;
 	        }
-            String cmdName = argv[0];
+            final String cmdName = argv[0];
 
-            Command command = env.getCommand(cmdName);
+            final Command command = env.getCommand(cmdName);
             if (command != null) {
 //                System.out.println("Running: " + command.getName() + " ("
 //                                + command.getClass().getName() + ")");
-                String[] cmdArgs = Arrays.copyOfRange(argv, 1, argv.length);
-                CommandLine cl = parse(command, cmdArgs);
+                final String[] cmdArgs = Arrays.copyOfRange(argv, 1, argv.length);
+                final CommandLine cl = parse(command, cmdArgs);
                 if (cl != null) {
                     try {
                         command.execute(env, cl, reader);
@@ -139,10 +164,10 @@ public abstract class AbstractShell {
         reader.println();
     }
 
-    private static CommandLine parse(Command cmd, String[] args) {
-        Options opts = cmd.getOptions();
-	    Options customOptions = new Options();
-	    for(Option option: (Iterable<Option>) opts.getOptions()) {
+    private static CommandLine parse(final Command cmd, final String[] args) {
+        final Options opts = cmd.getOptions();
+	    final Options customOptions = new Options();
+	    for(final Option option: (Iterable<Option>) opts.getOptions()) {
 		    customOptions.addOption(option);
 	    }
 	    customOptions.addOption(new Option("v", "verbose", false, "verbose mode"));
@@ -155,15 +180,15 @@ public abstract class AbstractShell {
         }
         return retval;
     }
-    
-    private Completer initCompleters(Environment env){
-        // create completers
-        ArrayList<Completer> completers = new ArrayList<Completer>();
-        for (String cmdName : env.commandList()) {
-            // command name
-            StringsCompleter sc = new StringsCompleter(cmdName);
 
-            ArrayList<Completer> cmdCompleters = new ArrayList<Completer>();
+	private Completer initCompleters(final Environment env){
+        // create completers
+        final ArrayList<Completer> completers = new ArrayList<Completer>();
+        for (final String cmdName : env.commandList()) {
+            // command name
+            final StringsCompleter sc = new StringsCompleter(cmdName);
+
+            final ArrayList<Completer> cmdCompleters = new ArrayList<Completer>();
             // add a completer for the command name
             cmdCompleters.add(sc);
             // add the completer for the command
@@ -171,17 +196,17 @@ public abstract class AbstractShell {
             // add a terminator for the command
             // cmdCompleters.add(new NullCompleter());
 
-            ArgumentCompleter ac = new ArgumentCompleter(cmdCompleters);
+            final ArgumentCompleter ac = new ArgumentCompleter(cmdCompleters);
             completers.add(ac);
         }
 
-        AggregateCompleter aggComp = new AggregateCompleter(completers);
-        
-        return aggComp;
+        final AggregateCompleter aggComp = new AggregateCompleter(completers);
+
+		return aggComp;
     }
 
     private History initHistory() throws IOException {
-        File dir = new File(System.getProperty("user.home"), "."
+        final File dir = new File(System.getProperty("user.home"), "."
                         + this.getName());
         if (dir.exists() && dir.isFile()) {
             throw new IllegalStateException(
@@ -192,7 +217,7 @@ public abstract class AbstractShell {
             dir.mkdir();
         }
         // directory created, touch history file
-        File histFile = new File(dir, "history");
+        final File histFile = new File(dir, "history");
         if (!histFile.exists()) {
             if (!histFile.createNewFile()) {
                 throw new IllegalStateException(
@@ -215,15 +240,16 @@ public abstract class AbstractShell {
                     e.printStackTrace();
                 }
             }
-            
+
         });
 
         return hist;
 
     }
 
-    public abstract Module initialize(final PeekingIterator<String> iterator) throws Exception;
+    public abstract Module initialize(CommandLine commandLine) throws Exception;
 
     public abstract String getName();
 
+	public abstract void provideOptions(Options options);
 }
