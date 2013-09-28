@@ -32,7 +32,6 @@ import net.peachjean.overeasy.command.Command;
 import net.peachjean.overeasy.commands.DefaultCommandsModule;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
@@ -222,16 +221,8 @@ public abstract class AbstractShell {
     }
 
     private History initHistory() throws IOException {
-        final File dir = getShellDir();
-        if (dir.exists() && dir.isFile()) {
-            throw new IllegalStateException(
-                            "Default configuration file exists and is not a directory: "
-                                            + dir.getAbsolutePath());
-        }
-        else if (!dir.exists()) {
-            dir.mkdir();
-        }
-        // directory created, touch history file
+	   final File dir = getShellDir();
+	    // directory created, touch history file
         final File histFile = new File(dir, "history");
         if (!histFile.exists()) {
             if (!histFile.createNewFile()) {
@@ -264,8 +255,17 @@ public abstract class AbstractShell {
 
 	private File getShellDir()
 	{
-		return new File(System.getProperty("user.home"), "."
-		                + this.getName());
+		final File dir = new File(System.getProperty("user.home"), "."
+		                                                           + this.getName());
+		if (dir.exists() && dir.isFile()) {
+		    throw new IllegalStateException(
+		                    "Default configuration file exists and is not a directory: "
+		                                    + dir.getAbsolutePath());
+		}
+		else if (!dir.exists()) {
+		    dir.mkdir();
+		}
+		return dir;
 	}
 
 	public abstract Module initialize(CommandLine commandLine) throws Exception;
