@@ -35,9 +35,32 @@ public class ShellHelpFormatter
 				length = str.length();
 			}
 		}
-		String format = "%" + length + "." + length + "s %-60.60s%n";
+		int messageLength = 79 - length;
+		String format = "%" + length + "." + length + "s  %-" + messageLength + "." + messageLength + "s%n";
+		String helpHeader;
+		String line;
+		int n;
+
 		for (String str : env.commandList()) {
-			out.write(String.format(format, str, env.getCommand(str).getHelpHeader()));
+			helpHeader =  env.getCommand(str).getHelpHeader();
+
+			do
+			{
+				if (helpHeader.length() <= 60)
+				{
+					line = helpHeader;
+					helpHeader = "";
+				}
+				else
+				{
+					n = helpHeader.substring(0, messageLength).lastIndexOf(" ");
+					line = helpHeader.substring(0, n);
+					helpHeader = helpHeader.substring(n + 1);
+				}
+				System.out.print(String.format(format, str, line));
+				str = "";
+			}
+			while (helpHeader.length() > 0);
 		}
 	}
 
