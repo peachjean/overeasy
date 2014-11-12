@@ -9,7 +9,7 @@
 
 	<groupId>net.peachjean.overeasy</groupId>
 	<artifactId>overeasy</artifactId>
-	<version>0.3.0-SNAPSHOT</version>
+	<version>0.3.0</version>
 	<packaging>jar</packaging>
 
 
@@ -28,7 +28,7 @@
 	<scm>
 		<url>https://github.com/peachjean/overeasy</url>
 		<developerConnection>scm:git:git@github.com:peachjean/overeasy.git</developerConnection>
-	  <tag>HEAD</tag>
+	  <tag>0.3.0</tag>
   </scm>
 
 	<developers>
