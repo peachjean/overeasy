@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/peachjean/overeasy.svg)](https://travis-ci.org/peachjean/overeasy)
+
 Current TODO:
 
 Document
