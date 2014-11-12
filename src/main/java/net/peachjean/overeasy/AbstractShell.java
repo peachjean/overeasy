@@ -147,7 +147,7 @@ public abstract class AbstractShell {
         reader.println();
     }
 
-	private void handleCommand(final ConsoleReader reader, final Environment env, final String line, final String[] argv)
+	private void handleCommand(final ConsoleReader reader, final Environment env, final String line, final String[] argv) throws IOException
 	{
 		final String cmdName = argv[0];
 
@@ -162,11 +162,11 @@ public abstract class AbstractShell {
 		            command.execute(env, cl, reader);
 		        }
 		        catch (Throwable e) {
-		            System.out.println("Command failed with error: "
-		                            + e.getMessage());
+		            reader.println("Command failed with error: "
+		                           + e.getMessage());
 			        logger.error("Command << " + line + " >> failed.", e);
 		            if (cl.hasOption("v")) {
-		                e.printStackTrace();
+			            writeVerboseError(reader, e);
 		            }
 		        }
 		    }
@@ -177,6 +177,11 @@ public abstract class AbstractShell {
 		        System.out.println(cmdName + ": command not found");
 		    }
 		}
+	}
+
+	protected void writeVerboseError(final ConsoleReader reader, final Throwable e) throws IOException
+	{
+		e.printStackTrace(new PrintWriter(reader.getOutput()));
 	}
 
 	private static CommandLine parse(final Command cmd, final String[] args) {
