@@ -26,10 +26,9 @@
 		</license>
 	</licenses>
 	<scm>
-		<url>https://bitbucket.org/peachjean/overeasy/</url>
-		<connection>scm:hg:ssh://hg@bitbucket.org/peachjean/overeasy</connection>
-		<developerConnection>scm:hg:ssh://hg@bitbucket.org/peachjean/overeasy</developerConnection>
-	  <tag>0.2.0</tag>
+		<url>https://github.com/peachjean/overeasy</url>
+		<developerConnection>scm:git:git@github.com:peachjean/overeasy.git</developerConnection>
+	  <tag>HEAD</tag>
   </scm>
 
 	<developers>
